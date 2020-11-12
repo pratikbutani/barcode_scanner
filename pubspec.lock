@@ -109,13 +109,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.3"
-  scan_preview:
+  qr_code_scanner:
     dependency: "direct main"
     description:
-      name: scan_preview
+      name: qr_code_scanner
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.0.2"
+    version: "0.0.13"
   sky_engine:
     dependency: transitive
     description: flutter

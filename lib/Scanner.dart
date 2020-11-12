@@ -1,52 +1,177 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:scan_preview/scan_preview_widget.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
-class Scanner extends StatefulWidget {
+const flashOn = 'FLASH ON';
+const flashOff = 'FLASH OFF';
+const frontCamera = 'FRONT CAMERA';
+const backCamera = 'BACK CAMERA';
+
+class QRViewExample extends StatefulWidget {
+  const QRViewExample({
+    Key key,
+  }) : super(key: key);
+
   @override
-  _ScannerState createState() => _ScannerState();
+  State<StatefulWidget> createState() => _QRViewExampleState();
 }
 
-class _ScannerState extends State<Scanner> {
-  String barcode = "";
+class _QRViewExampleState extends State<QRViewExample> {
+  var qrText = '';
+  var flashState = flashOn;
+  var cameraState = frontCamera;
+  QRViewController controller;
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
 
-  bool refresh = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _requestPermission();
-  }
-
-  _requestPermission() async {
-    await Permission.camera.request();
-  }
+  int index = 0;
 
   @override
   Widget build(BuildContext context) {
-    double height = MediaQuery.of(context).size.height;
     return Scaffold(
-        appBar: AppBar(
-          title: Text("Barcode Scanner"),
-          centerTitle: true,
-        ),
-        body: Column(
-          children: [
-            SizedBox(
-              width: double.infinity,
-              height: height/1.5,
-              child: ScanPreviewWidget(
-                onScanResult: (result) {
-                  debugPrint('scan result: $result');
-                  setState(() {
-                    barcode = result;
-                  });
-                },
+      body: Column(
+        children: <Widget>[
+          Expanded(
+            flex: 4,
+            child: QRView(
+              key: qrKey,
+              onQRViewCreated: _onQRViewCreated,
+              overlay: QrScannerOverlayShape(
+                borderColor: Colors.red,
+                borderRadius: 10,
+                borderLength: 30,
+                borderWidth: 10,
+                cutOutSize: 400,
               ),
             ),
-            SizedBox(height: 20),
-            Center(child: Text(barcode))
-          ],
-        ));
+          ),
+          Expanded(
+            flex: 2,
+            child: Container(
+              // fit: BoxFit.none,
+              margin: EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text('$qrText',
+                      maxLines: 2,
+                      overflow: TextOverflow.fade,
+                      textAlign: TextAlign.justify,
+                      style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2)),
+                  /*Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: <Widget>[
+                      Container(
+                        margin: EdgeInsets.all(8),
+                        child: RaisedButton(
+                          onPressed: () {
+                            if (controller != null) {
+                              controller.toggleFlash();
+                              if (_isFlashOn(flashState)) {
+                                setState(() {
+                                  flashState = flashOff;
+                                });
+                              } else {
+                                setState(() {
+                                  flashState = flashOn;
+                                });
+                              }
+                            }
+                          },
+                          child:
+                              Text(flashState, style: TextStyle(fontSize: 20)),
+                        ),
+                      ),
+                      Container(
+                        margin: EdgeInsets.all(8),
+                        child: RaisedButton(
+                          onPressed: () {
+                            if (controller != null) {
+                              controller.flipCamera();
+                              if (_isBackCamera(cameraState)) {
+                                setState(() {
+                                  cameraState = frontCamera;
+                                });
+                              } else {
+                                setState(() {
+                                  cameraState = backCamera;
+                                });
+                              }
+                            }
+                          },
+                          child:
+                              Text(cameraState, style: TextStyle(fontSize: 20)),
+                        ),
+                      )
+                    ],
+                  ),*/
+                  SizedBox(height: 10),
+                  FittedBox(
+                    fit: BoxFit.none,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: <Widget>[
+                        Container(
+                          margin: EdgeInsets.all(16),
+                          child: RaisedButton(
+                            onPressed: () {
+                              setState(() {
+                                qrText = "";
+                              });
+                              controller?.resumeCamera();
+                            },
+                            child: Text('Cancel'),
+                          ),
+                        ),
+                        Container(
+                          margin: EdgeInsets.all(8),
+                          child: RaisedButton(
+                            onPressed: () {
+                              //TODO Save Text Here...
+                              controller?.resumeCamera();
+                            },
+                            color: Colors.red,
+                            child: Text('Next',
+                                style: TextStyle(color: Colors.white)),
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  bool _isFlashOn(String current) {
+    return flashOn == current;
+  }
+
+  bool _isBackCamera(String current) {
+    return backCamera == current;
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      controller.pauseCamera();
+      setState(() {
+        qrText = scanData;
+        index++;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 }
